@@ -35,7 +35,8 @@ class S3urlmediaActivity : AppCompatActivity(), SurfaceHolder.Callback {
             if (!(bucketUrl.isNullOrBlank())) {
                 Log.d("bucketUrl : ", bucketUrl)
 
-                /* java.lang.IllegalArgumentException : You must call this method on the main thread
+                /*
+                // java.lang.IllegalArgumentException : You must call this method on the main thread
                 Glide.with(applicationContext)
                     .load(bucketUrl + "image_Name.jpg") // 불러올 이미지 url
                     .placeholder(defaultImage) // 이미지 로딩 시작하기 전 표시할 이미지
@@ -57,6 +58,8 @@ class S3urlmediaActivity : AppCompatActivity(), SurfaceHolder.Callback {
             }
         }.start()
 
+        // 동영상 파일 URL(videoUrl) 얻어 와서 사용  // S3 Bucket 안의 동영상 파일 객체 URL(bucketUrl + videoName) 얻어 와서 사용
+        // s3Client.doesBucketExist(bucketName) 사용 시 - E/SurfaceView: Exception configuring surface  android.os.NetworkOnMainThreadException
         mediaPlayer = MediaPlayer()
         surfaceHolder = surfaceView.holder
         surfaceHolder.addCallback(this)
@@ -99,15 +102,23 @@ class S3urlmediaActivity : AppCompatActivity(), SurfaceHolder.Callback {
     }
 
     override fun surfaceCreated(holder : SurfaceHolder) {
-        val videoUrl : String? = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+        var bucketUrl : String? = null
+        val awsCredentials : AWSCredentials = BasicAWSCredentials("access_Key", "secret_Key") // IAM User의 (accessKey, secretKey)
+        val s3Client = AmazonS3Client(awsCredentials, Region.getRegion(Regions.AP_NORTHEAST_2))
+        bucketUrl = s3Client.getResourceUrl("bucket_Name", null).toString()
+//        val bucketUrl : String? = ensureBucketExists("bucket_Name")  // s3Client.doesBucketExist(bucketName) 사용 시 - E/SurfaceView: Exception configuring surface  android.os.NetworkOnMainThreadException
+        var videoName : String? = "video_Name.mp4"
+//        val videoUrl : String? = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
 
         try {
-            mediaPlayer.setDataSource(videoUrl)
+            mediaPlayer.setDataSource(bucketUrl + videoName)
+//            mediaPlayer.setDataSource(videoUrl)
             mediaPlayer.setDisplay(holder)
             mediaPlayer.prepare()
             mediaPlayer.start()
 
-            Log.d("MediaPlayer : ", "재생")
+            Log.d("MediaPlayer : ", bucketUrl + videoName + " 재생")
+//            Log.d("MediaPlayer : ", "재생")
         }
         catch (e: Exception) {
             Log.e("Exception : ", e.toString())
